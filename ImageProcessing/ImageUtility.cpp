@@ -15,8 +15,8 @@ namespace ImageUtility {
 		Create Largest Set Mask
 		(FOREGROUND, BACKGROUND)
 		*/
-		// TODO: need background regioning
- 		BorderRegionGrowing<T>(mask);
+
+		BorderRegionGrowing<T>(mask);
 		ConnectedComponentAnalyze<T>(mask, label);
 
 		return mask;
@@ -65,7 +65,6 @@ namespace ImageUtility {
 		const int neighborY[] = { 0, -1, 0, 0, 1, 0 };
 		const int neighborZ[] = { 0, 0, -1, 0, 0, 1 };
 		
-		// TODO: check cur is bg
 		int index = image->get3DIndex(x, y, z);
 		if (image->getBuffer()[index] == BACKGROUND) return;	// Not for Background
 		image->getBuffer()[index] = BACKGROUND;
@@ -192,14 +191,6 @@ namespace ImageUtility {
 
 //		// Remove Background
 //		std::sort(comps.components.begin(), comps.components.end(), std::greater<Component>());
-		
-		for (int i = 0; i < 20; i++) {
-			std::cout << "comp_label : " << comps.components[i].label << " size : " << comps.components[i].size << std::endl;
-		}
-
-		// TODO: set the biggest
-		std::cout << comps.components[pre_defined_label - 1].label << std::endl;
-		std::cout << comps.components[pre_defined_label - 1].parent << std::endl;
 
 		const int interest_label = comps.Find(comps.components[pre_defined_label - 1]).label;
 		std::cout << interest_label << std::endl;
@@ -221,6 +212,151 @@ namespace ImageUtility {
 				}
 			}
 		}
+	}
+
+	template <typename T>
+	Image3D<T>* CalculateChamferDistanceMap(Image3D<T>* image, int isothetic, int diagonal, int diagonal3D) {
+
+		// First 
+		// Iso(3), Dia(6), Dia3D(4)
+		const int neighborFirstX[] = { -1,  0,  0,  0, -1, -1,  0,  1,  1, -1,  1, -1,  1};
+		const int neighborFirstY[] = {  0, -1,  0, -1,  0, -1,  1,  0, -1, -1, -1,  1,  1};
+		const int neighborFirstZ[] = {  0,  0, -1, -1, -1,  0, -1, -1,  0, -1, -1, -1, -1};
+
+		// Second 
+		// Iso(3), Dia(6), Dia3D(4)
+		const int neighborSecondX[] = {  1,  0,  0,  0,  1,  1,  0,  1, -1,  1, -1,  1, -1 };
+		const int neighborSecondY[] = {  0,  1,  0,  1,  0,  0, -1,  1,  1,  1,  1, -1, -1 };
+		const int neighborSecondZ[] = {  0,  0,  1,  1,  1,  1,  1,  0,  0,  1,  1,  1,  1 };
+
+		Image3D<T>* distanceMap = new Image3D<T>(image->getWidth(), image->getHeight(), image->getDepth());
+
+
+		// Initialize distance map as infinite
+#pragma omp parallel for
+		for (int i = 0; i < image->getWidth()*image->getHeight()*image->getDepth(); i++) {
+			if (image->getBuffer()[i] == EDGE) {
+				distanceMap->getBuffer()[i] = 0;
+			}
+			else {
+				distanceMap->getBuffer()[i] = SHRT_MAX;
+			}
+		}
+
+		// First Pass
+		for (int z = 0; z < distanceMap->getDepth(); z++) {
+			for (int y = 0; y < distanceMap->getHeight(); y++) {
+				for (int x = 0; x < distanceMap->getWidth(); x++) {
+
+					int index = distanceMap->get3DIndex(x, y, z);
+
+					if (distanceMap->getBuffer()[index] == 0) {	// Skip for edge
+						continue;
+					}
+
+					short minDistance = distanceMap->getBuffer()[index];
+
+					// Check isothetic
+					for (int i = 0; i < 3; i++) {
+						if (distanceMap->isValidIndex(x + neighborFirstX[i], y + neighborFirstY[i], z+ neighborFirstZ[i])) {
+							int neighborIndex = distanceMap->get3DIndex(x + neighborFirstX[i], y + neighborFirstY[i], z +neighborFirstZ[i]);
+
+							short neighborDistance = distanceMap->getBuffer()[neighborIndex];
+							if (neighborDistance == SHRT_MAX) continue;		// Skip for unvisited
+							if (minDistance > neighborDistance + isothetic) {
+								minDistance = neighborDistance + isothetic;
+							}
+						}
+					}
+					// Check diagonal
+					for (int i = 3; i < 3 + 6; i++) {
+						if (distanceMap->isValidIndex(x + neighborFirstX[i], y + neighborFirstY[i], z + neighborFirstZ[i])) {
+							int neighborIndex = distanceMap->get3DIndex(x + neighborFirstX[i], y + neighborFirstY[i], z + neighborFirstZ[i]);
+
+							short neighborDistance = distanceMap->getBuffer()[neighborIndex];
+							if (neighborDistance == SHRT_MAX) continue;		// Skip for unvisited
+							if (minDistance > neighborDistance + diagonal) {
+								minDistance = neighborDistance + diagonal;
+							}
+						}
+					}
+					// Check diagonal3D
+					for (int i = 3 + 6; i < 3 + 6 + 4; i++) {
+						if (distanceMap->isValidIndex(x + neighborFirstX[i], y + neighborFirstY[i], z + neighborFirstZ[i])) {
+							int neighborIndex = distanceMap->get3DIndex(x + neighborFirstX[i], y + neighborFirstY[i], z + neighborFirstZ[i]);
+
+							short neighborDistance = distanceMap->getBuffer()[neighborIndex];
+							if (neighborDistance == SHRT_MAX) continue;		// Skip for unvisited
+							if (minDistance > neighborDistance + diagonal3D) {
+								minDistance = neighborDistance + diagonal3D;
+							}
+						}
+					}
+
+					// Update distance map
+					distanceMap->getBuffer()[index] = minDistance;
+				}
+			}
+		}
+		std::cout << "first pass complete" << std::endl;
+
+		// Second Pass
+		for (int z = distanceMap->getDepth() - 1; z >= 0; z--) {
+			for (int y = distanceMap->getHeight() - 1; y >= 0; y--) {
+				for (int x = distanceMap->getWidth() - 1; x >= 0; x--) {
+
+					int index = distanceMap->get3DIndex(x, y, z);
+
+					if (distanceMap->getBuffer()[index] == 0) {	// Skip for edge
+						continue;
+					}
+
+					short minDistance = distanceMap->getBuffer()[index];
+
+					// Check isothetic
+					for (int i = 0; i < 3; i++) {
+						if (distanceMap->isValidIndex(x + neighborSecondX[i], y + neighborSecondY[i], z + neighborSecondZ[i])) {
+							int neighborIndex = distanceMap->get3DIndex(x + neighborSecondX[i], y + neighborSecondY[i], z + neighborSecondZ[i]);
+
+							short neighborDistance = distanceMap->getBuffer()[neighborIndex];
+							if (neighborDistance == SHRT_MAX) continue;		// Skip for unvisited
+							if (minDistance > neighborDistance + isothetic) {
+								minDistance = neighborDistance + isothetic;
+							}
+						}
+					}
+					// Check diagonal
+					for (int i = 3; i < 3 + 6; i++) {
+						if (distanceMap->isValidIndex(x + neighborSecondX[i], y + neighborSecondY[i], z + neighborSecondZ[i])) {
+							int neighborIndex = distanceMap->get3DIndex(x + neighborSecondX[i], y + neighborSecondY[i], z + neighborSecondZ[i]);
+
+							short neighborDistance = distanceMap->getBuffer()[neighborIndex];
+							if (neighborDistance == SHRT_MAX) continue;		// Skip for unvisited
+							if (minDistance > neighborDistance + diagonal) {
+								minDistance = neighborDistance + diagonal;
+							}
+						}
+					}
+					// Check diagonal3D
+					for (int i = 3 + 6; i < 3 + 6 + 4; i++) {
+						if (distanceMap->isValidIndex(x + neighborSecondX[i], y + neighborSecondY[i], z + neighborSecondZ[i])) {
+							int neighborIndex = distanceMap->get3DIndex(x + neighborSecondX[i], y + neighborSecondY[i], z + neighborSecondZ[i]);
+
+							short neighborDistance = distanceMap->getBuffer()[neighborIndex];
+							if (neighborDistance == SHRT_MAX) continue;		// Skip for unvisited
+							if (minDistance > neighborDistance + diagonal3D) {
+								minDistance = neighborDistance + diagonal3D;
+							}
+						}
+					}
+
+					// Update distance map
+					distanceMap->getBuffer()[index] = minDistance;
+				}
+			}
+		}
+
+		return distanceMap;
 	}
 
 	template <typename T>

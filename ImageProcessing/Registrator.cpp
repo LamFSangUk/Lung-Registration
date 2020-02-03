@@ -49,12 +49,13 @@ void Registrator<T>::Process() {
 	// Initial Transform : Transform both image and mask to use same rotation center (aligned center of mass)
 	glm::mat4 transform = glm::translate(centerDifference);
 
-	// TODO : temporal disactivate edge
 	ImageUtility::FindEdge(m_floatMask);
 	ImageUtility::FindEdge(m_referenceMask);
 
 	// TODO : calclulate distance map using reference mask
-	Image3D<T>* referenceDistanceMap = m_referenceMask;
+	Image3D<T>* referenceDistanceMap = ImageUtility::CalculateChamferDistanceMap(m_referenceMask, 3, 4, 5);
+	// TODO : Temproal code for debug
+	m_referenceMask = referenceDistanceMap;
 
 	int currentDistance = CalculateTransformedDistance(referenceDistanceMap, m_floatMask, transform);
 

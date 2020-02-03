@@ -23,12 +23,11 @@ Image3D<T>::Image3D(T * buffer, unsigned width, unsigned height, unsigned depth,
 
 template <typename T>
 Image3D<T>::Image3D(unsigned width, unsigned height, unsigned depth)
-	:m_type(type),
-	m_width(width),
+	:m_width(width),
 	m_height(height),
 	m_depth(depth),
 	m_minmax(BACKGROUND, FOREGROUND) {
-	m_buffer = new char[getBufferLength()];
+	m_buffer = new T[getBufferLength()];
 #pragma omp parallel for
 	for (int i = 0; i < width*height*depth; i++) {
 		m_buffer[i] = BACKGROUND;
