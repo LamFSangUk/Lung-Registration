@@ -219,9 +219,9 @@ namespace ImageUtility {
 
 		// First 
 		// Iso(3), Dia(6), Dia3D(4)
-		const int neighborFirstX[] = { -1,  0,  0,  0, -1, -1,  0,  1,  1, -1,  1, -1,  1};
-		const int neighborFirstY[] = {  0, -1,  0, -1,  0, -1,  1,  0, -1, -1, -1,  1,  1};
-		const int neighborFirstZ[] = {  0,  0, -1, -1, -1,  0, -1, -1,  0, -1, -1, -1, -1};
+		const int neighborFirstX[] = { -1,  0,  0,  0, -1, -1,  0,  1,  1, -1,  1, -1,  1 };
+		const int neighborFirstY[] = {  0, -1,  0, -1,  0, -1,  1,  0, -1, -1, -1,  1,  1 };
+		const int neighborFirstZ[] = {  0,  0, -1, -1, -1,  0, -1, -1,  0, -1, -1, -1, -1 };
 
 		// Second 
 		// Iso(3), Dia(6), Dia3D(4)
