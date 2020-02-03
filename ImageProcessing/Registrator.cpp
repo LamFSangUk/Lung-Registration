@@ -41,14 +41,15 @@ void Registrator<T>::Process() {
 	m_referenceImage->sliceInterpolate(5);
 	m_floatImage->sliceInterpolate(5);
 
-	m_referenceMask = ImageUtility::CreateMask(m_referenceImage);
-	m_floatMask = ImageUtility::CreateMask(m_floatImage);
+	m_referenceMask = ImageUtility::CreateMask(m_referenceImage, 7);
+	m_floatMask = ImageUtility::CreateMask(m_floatImage, 6);
 
 	glm::vec3 referenceCenter = CalculateCenterOfMass(m_referenceMask);
 	glm::vec3 centerDifference = referenceCenter - CalculateCenterOfMass(m_floatMask);
 	// Initial Transform : Transform both image and mask to use same rotation center (aligned center of mass)
 	glm::mat4 transform = glm::translate(centerDifference);
 
+	// TODO : temporal disactivate edge
 	ImageUtility::FindEdge(m_floatMask);
 	ImageUtility::FindEdge(m_referenceMask);
 

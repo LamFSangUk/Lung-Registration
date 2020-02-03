@@ -53,7 +53,7 @@
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
       <AdditionalLibraryDirectories>$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -94,6 +94,7 @@ xcopy /y /d "%%~a" "$(OutDir)"
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ConnectedComponent.cpp" />
     <ClCompile Include="FileHelper.cpp" />
     <ClCompile Include="GeneratedFiles\Debug\moc_ImageViewer.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -151,6 +152,7 @@ xcopy /y /d "%%~a" "$(OutDir)"
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="ConnectedComponent.h" />
     <ClInclude Include="FileHelper.h" />
     <ClInclude Include="GeneratedFiles\ui_ImageViewer.h" />
     <ClInclude Include="Image3D.h" />
