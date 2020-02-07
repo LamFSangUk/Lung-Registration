@@ -8,6 +8,8 @@
 #include <omp.h>
 #include <qdebug.h>
 
+#include<glm/gtx/string_cast.hpp>
+
 template <typename T>
 Registrator<T>::Registrator(Image3D<T> * referenceImage, Image3D<T> * floatImage)
 	:m_referenceImage(referenceImage),
@@ -58,9 +60,76 @@ void Registrator<T>::Process() {
 	m_referenceMask = referenceDistanceMap;
 
 	int currentDistance = CalculateTransformedDistance(referenceDistanceMap, m_floatMask, transform);
+	int prevDistance = currentDistance;
+	int countSameLoop = 0;
+	int countDecay = 0;
+	float degreeScale = 1.;
 
 	/*
 	TODO : optimize transform using distance map
+	*/
+	// Powell method
+	
+	while (true) {
+		for (int t_param = 0; t_param < 6; t_param++) {
+			// t_param is a transformation parameter, each value 0 to 5 indicates Tx,Ty,Tz,Rx,Ry,Rz.
+			glm::mat4 powellTransform = glm::mat4(1.0f);
+
+			for (int degree = -2; degree <= 2; degree++) {
+				if (degree == 0) continue;	// skip the 0 degree
+
+				// Create powell transform matrix
+				if (t_param / 3 == 0) { // Translation
+					glm::vec3 t = glm::vec3(0, 0, 0);
+					t[t_param] = degree/degreeScale;
+
+					powellTransform = glm::translate(t);
+				}
+				else { // Rotation
+					float radian = (degree/degreeScale) * 3.14 / 180;
+
+					radian = radian / 2;
+
+					glm::vec3 axis = glm::vec3(0, 0, 0);
+					axis[t_param - 3] = 1;
+
+					powellTransform = glm::rotate(radian, axis);
+				}
+
+				int distance = CalculateTransformedDistance(referenceDistanceMap, m_floatMask, powellTransform * transform);
+
+				if (currentDistance > distance) {
+					currentDistance = distance;
+					transform = powellTransform * transform;
+				}
+
+				std::cout << " - Powell Matrix : " << std::endl;
+				std::cout << glm::to_string(powellTransform) << std::endl;
+				std::cout << " - Transform Matrix : " << std::endl;
+				std::cout << glm::to_string(transform) << std::endl;
+				std::cout << " - Distance : " << std::endl;
+				std::cout << currentDistance << std::endl << std::endl;
+			}
+		}
+
+		if (currentDistance == prevDistance) {
+			countSameLoop++;
+			if (countSameLoop > 1) break;
+			else if (countDecay > 2) break;
+			else {
+				countDecay++;
+				degreeScale *= 10;
+
+				countSameLoop = 0;
+			}
+		}
+		else {
+			countSameLoop = 0;
+		}
+		prevDistance = currentDistance;
+
+	}
+	/*
 	ex) distance = CalculateTransformedDistance(referenceDistanceMap, m_floatMask, transform);
 	*/
 

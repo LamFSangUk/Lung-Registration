@@ -40,6 +40,7 @@ namespace ImageUtility {
 	void BorderRegionGrowing(Image3D<T> * image) {
 
 		// Left plane
+#pragma omp parallel for
 		for (int z = 0; z < image->getDepth(); z++) {
 			for (int y = 0; y < image->getHeight(); y++) {
 				int x = 0;
@@ -48,6 +49,7 @@ namespace ImageUtility {
 			}
 		}
 
+#pragma omp parallel for
 		// Right plane
 		for (int z = 0; z < image->getDepth(); z++) {
 			for (int y = 0; y < image->getHeight(); y++) {
